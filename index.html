@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.0.3/marked.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        #fileInput {
+            display: block;
+            margin: 20px auto;
+        }
+        #chatContainer {
+            margin-top: 20px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .human {
+            background-color: #e6f3ff;
+            text-align: right;
+        }
+        .assistant {
+            background-color: #f0f0f0;
+        }
+        .sender {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #666;
+        }
+        #loadingMessage {
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chat Viewer</h1>
+        <input type="file" id="fileInput" accept=".json">
+        <div id="loadingMessage"></div>
+        <div id="chatContainer"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const conversationFile = urlParams.get('conversationFile');
+
+            if (conversationFile) {
+                document.getElementById('fileInput').style.display = 'none';
+                document.getElementById('loadingMessage').textContent = 'Loading conversation...';
+                fetchConversation(conversationFile);
+            }
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const data = JSON.parse(content);
+                displayChat(data);
+            };
+
+            reader.readAsText(file);
+        });
+
+        function fetchConversation(url) {
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    displayChat(data);
+                    document.getElementById('loadingMessage').style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error fetching conversation:', error);
+                    document.getElementById('loadingMessage').textContent = 'Error loading conversation. Please try uploading the file manually.';
+                    document.getElementById('fileInput').style.display = 'block';
+                });
+        }
+
+        function displayChat(data) {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.innerHTML = '';
+
+            data.forEach(conversation => {
+                conversation.chat_messages.forEach(message => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${message.sender}`;
+
+                    const senderDiv = document.createElement('div');
+                    senderDiv.className = 'sender';
+                    senderDiv.textContent = message.sender === 'human' ? 'You' : 'Assistant';
+                    messageDiv.appendChild(senderDiv);
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'content';
+                    contentDiv.innerHTML = marked(message.text);
+                    messageDiv.appendChild(contentDiv);
+
+                    const timestampDiv = document.createElement('div');
+                    timestampDiv.className = 'timestamp';
+                    timestampDiv.textContent = new Date(message.created_at).toLocaleString();
+                    messageDiv.appendChild(timestampDiv);
+
+                    chatContainer.appendChild(messageDiv);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
